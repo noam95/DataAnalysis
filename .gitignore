@@ -1,0 +1,8 @@
+/.venv/
+/.idea
+data_analysis/__pycache__
+/__pycache__/
+morning_rutine_manager/__pycache__
+outputs/__pycache__
+system_inputs/__pycache__
+/.idea/
