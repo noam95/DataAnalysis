@@ -1,21 +1,22 @@
 import random
 import time
 from datetime import datetime
-import xlsxwriter as xlsxwriter
+import xlsxwriter
 import requests
-from morning_rutine_manager.system_constants import DATA_SOURCE_BPM
 from db.db_connector import DbConnector
-from user_cluster import User
+from db.records_handler import RecordsDbConnector
+from system_constants import DATA_SOURCE_BPM
+from ui_back import User
 
 
 def get_bpm_from_google_fit(user, from_time: datetime, to_time):
-    fit_istance = user.user_fit
+    fit_instance = user.fit_instance
     start = int(time.mktime(from_time.timetuple()) * 1000000000)
     end = int(time.mktime(to_time.timetuple()) * 1000000000)
     data_set = "%s-%s" % (start, end)
-    return fit_istance.users().dataSources().datasets().get(userId='me',
-                                                            dataSourceId=DATA_SOURCE_BPM,
-                                                            datasetId=data_set).execute()
+    return fit_instance.users().dataSources().datasets().get(userId='me',
+                                                             dataSourceId=DATA_SOURCE_BPM,
+                                                             datasetId=data_set).execute()
 
 
 def save_data_as_file(data, start_time):
@@ -42,19 +43,20 @@ def save_data_as_file(data, start_time):
     workbook.close()
 
 
-def save_data_to_db(user: User, data, db_connector: DbConnector):
+def save_data_to_db(user: User, data, db_connector: RecordsDbConnector):
     for row in data['point']:
         last = row['endTimeNanos']
         seconds = int(last) / 1000000000
-        measure_date_time =  datetime.fromtimestamp(seconds)
+        measure_date_time = datetime.fromtimestamp(seconds)
         fpval = row['value'][0]['fpVal']
 
-        db_connector.add_night_recording(user.userID, measure_date_time, measure_date_time, fpval)
+        db_connector.add_record(user.userID, measure_date_time, measure_date_time, fpval)
 
 
-def get_data_and_save_in_db(user, from_time: datetime, to_time, db_connector: DbConnector):
+def get_data_and_save_in_db(user: User, from_time: datetime, to_time, db_connector: RecordsDbConnector):
     data = get_bpm_from_google_fit(user, from_time, to_time)
     save_data_to_db(user, data, db_connector)
+    return data
 
 
 def set_session(start_time, end_time, creds, activity_type=0, session_id=random.randint(0, 100)):

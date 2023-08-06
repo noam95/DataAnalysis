@@ -1,3 +1,5 @@
+from pathlib import Path
+
 from google.auth.transport.requests import Request
 from google.oauth2.credentials import Credentials
 from google_auth_oauthlib.flow import InstalledAppFlow
@@ -14,11 +16,6 @@ class GoogleFit:
                        "https://www.googleapis.com/auth/fitness.activity.write",
                        "https://www.googleapis.com/auth/fitness.sleep.write"]
 
-        # Create the flow object
-        self.flow = InstalledAppFlow.from_client_secrets_file(
-            "google_fit_tools/credentials.json",
-            scopes=self.scopes,
-            redirect_uri='https://more-ning.com:3250/oauth/callback')
 
     def initial_token(self, user_id, creds=None) -> Credentials:
         """
@@ -29,12 +26,12 @@ class GoogleFit:
             creds.refresh(request)
         else:
             flow = InstalledAppFlow.from_client_secrets_file("google_fit_tools/credentials.json", self.scopes)
-            creds = flow.run_local_server(port=0)
+            creds = flow.run_local_server(port=3000)
             with open("google_fit_tools/tokens.json", "a") as token:
                 token.write(f'{user_id}: {creds.to_json()}\n')
         return creds
 
-    def create_cardentials(self, token):
+    def create_credentials(self, token):
         token_as_dict = json.loads(token)
         return Credentials.from_authorized_user_info(token_as_dict, self.scopes)
 
