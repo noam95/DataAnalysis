@@ -8,18 +8,19 @@ from ui_back import UiBack
 
 
 def initial_values(backend_instance):
-    backend_instance.add_user("noam95@gmail.com")
+    user_id = "noam95@gmail.com"
+    backend_instance.add_user(user_id)
     #define parametrs which will be defined by user
-    datetime_str = '2023-07-22 00:00:00'
+    datetime_str = '2024-01-01 00:00:00' # 11/07/2023 - 07/08/2023
     from_date = datetime.strptime(datetime_str, '%Y-%m-%d %H:%M:%S')
     from_date.timestamp() * 1000
-    to_date = from_date + timedelta(days=2)
-    start_time = "05:00:00"
-    end_time = "10:00:00"
-    # backend_instance.get_all_users_data_from_google(start_time, end_time)
-    # backend_instance.get_records_data_from_db(backend_instance.get_user_by_id("noam"), from_date, to_date, start_time,
-    #                                           end_time)
-    backend_instance.get_combined_data(backend_instance.get_user_by_id("noam95@gmail.com"), from_date, to_date, start_time, end_time)
+    to_date = from_date + timedelta(days=120)
+    start_time = "01:00:00"
+    end_time = "19:00:00"
+    backend_instance.get_all_users_data_from_google(from_date, to_date)
+    backend_instance.get_records_data_from_db(backend_instance.get_user_by_id(user_id), from_date, to_date, start_time,
+                                              end_time)
+    # backend_instance.get_combined_data(backend_instance.get_user_by_id(user_id), from_date, to_date, start_time, end_time)
 
 def init_system():
     #init main istances
@@ -48,7 +49,7 @@ def init_system():
         if datetime_str and selected_user and num_days:
             from_date = datetime.strptime(datetime_str, '%Y-%m-%d %H:%M:%S')
             to_date = from_date + timedelta(days=num_days)
-            backend_instance.get_user_data_from_google(selected_user, from_date, to_date)
+            backend_instance.get_user_data_from_google_and_save_in_db(selected_user, from_date, to_date)
 
     # Plot from SQL DB
     if st.button("Plot records_data from SQL DB"):

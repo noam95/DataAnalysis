@@ -6,7 +6,7 @@ import requests
 from db.db_connector import DbConnector
 from db.records_handler import RecordsDbConnector
 from system_constants import DATA_SOURCE_BPM
-from ui_back import User
+from User import User
 
 
 def get_bpm_from_google_fit(user, from_time: datetime, to_time):
@@ -19,9 +19,9 @@ def get_bpm_from_google_fit(user, from_time: datetime, to_time):
                                                              datasetId=data_set).execute()
 
 
-def save_data_as_file(data, start_time):
+def save_data_as_file(data, start_time, filepath):
     workbook_name = datetime.strftime(start_time, '%d.%m.%y %H:%M:%S').split(" ")[0]
-    workbook = xlsxwriter.Workbook(f'bpm2-{workbook_name}.xlsx')
+    workbook = xlsxwriter.Workbook(filepath)
     worksheet = workbook.add_worksheet()
 
     # Start from the first cell.

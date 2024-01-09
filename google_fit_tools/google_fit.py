@@ -27,8 +27,9 @@ class GoogleFit:
         else:
             flow = InstalledAppFlow.from_client_secrets_file("google_fit_tools/credentials.json", self.scopes)
             creds = flow.run_local_server(port=3000)
-            with open("google_fit_tools/tokens.json", "a") as token:
-                token.write(f'{user_id}: {creds.to_json()}\n')
+            #TODO: Enable it and fix the missing field 'refresh token"
+            # with open("google_fit_tools/tokens.json", "a") as token:
+            #     token.write(f'{user_id}: {creds.to_json()}\n')
         return creds
 
     def create_credentials(self, token):

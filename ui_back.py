@@ -6,7 +6,7 @@ import pandas as pd
 from User import User
 from db.records_handler import RecordsDbConnector
 from google_fit_tools.google_fit import GoogleFit
-from google_fit_tools.google_fit_utils import get_data_and_save_in_db
+from google_fit_tools.google_fit_utils import get_data_and_save_in_db, get_bpm_from_google_fit
 import matplotlib.pyplot as plt
 
 
@@ -43,10 +43,14 @@ class UiBack:
         data = []
         for user in self.users_list:
             data += get_data_and_save_in_db(user, from_time, to_time, self.recordsDbConnector)
+            # data += get_bpm_from_google_fit(user, from_time, to_time)
         return data
 
-    def get_user_data_from_google(self, user: User, from_time: datetime, to_time):
+    def get_user_data_from_google_and_save_in_db(self, user: User, from_time: datetime, to_time):
         return get_data_and_save_in_db(user, from_time, to_time, self.recordsDbConnector)
+
+    def get_user_data_from_google(self, user: User, from_time: datetime, to_time):
+        return get_bpm_from_google_fit(user, from_time, to_time)
 
     def get_records_data_from_db(self, selected_user, from_date: datetime, to_date: datetime, from_time: str, to_time: str):
         return self.recordsDbConnector.get_records_from_db(from_date, to_date, from_time, to_time, selected_user)
@@ -54,7 +58,7 @@ class UiBack:
     def get_combined_data(self, selected_user, from_date: datetime, to_date: datetime, from_time: str, to_time: str):
         meta_data = self.__prepare_meta_data(self.get_meta_data())
         fitness_data = self.get_records_data_from_db(selected_user, from_date, to_date, from_time, to_time)
-        self.plot_conmined(meta_data, fitness_data)
+        self.plot_conmined(meta_data, fitness_data, from_date)
         return self.__combine_data(meta_data, fitness_data)
 
     def get_meta_data(self) -> pandas.DataFrame:
@@ -62,7 +66,7 @@ class UiBack:
 
     def __prepare_meta_data(self, meta_data):
         # combine fill time with new time
-        meta_data["date"] = meta_data['date'].fillna(pd.to_datetime(meta_data["fill_date"]).dt.date, inplace=True)
+        meta_data['date'].fillna(pd.to_datetime(meta_data["fill_date"]).dt.date, inplace=True)
         # Replace 'שעון מעורר' with 'alarm_clock' in the 'wake_up_type' column
         meta_data['wake_up_type'] = meta_data['wake_up_type'].replace('שעון מעורר', 'alarm_clock', regex=False)
         # Replace 'יקיצה טבעית' with 'alarm_clock' in the 'natural_wakeup' column
@@ -78,7 +82,7 @@ class UiBack:
         df_wake_up_time = df_merged[df_merged['line_type'] == 'blue']
         df_alarm_clock_time = df_merged[df_merged['line_type'] == 'red']
 
-    def plot_conmined(self, df_metadata, df_records):
+    def plot_conmined(self, df_metadata, df_records, plot_date):
         # df_records['time'] = pd.to_datetime(df_records['time']).dt.time
         # # df_metadata['wake_up_time'] = pd.to_datetime(df_metadata['wake_up_time']).dt.time
         # df_metadata['wake_up_time'] = pd.to_datetime(df_metadata['wake_up_time'].astype(str)).dt.time
@@ -98,19 +102,21 @@ class UiBack:
 
         # Plot data for each user_id in different colors
         for user_id in unique_user_ids:
-            user_data = df_records[df_records['user_id'] == user_id]
+            user_data = df_records[
+                (df_records['user_id'] == user_id) & (df_records['date'] == plot_date.strftime('%Y-%m-%d'))]
             plt.plot(user_data['time'], user_data['bpm'], label=f'User {user_id}', marker='o')
+            user_metadata = df_metadata[(df_metadata['date'] == plot_date) & (df_metadata['user_id'] == user_id)]
 
-        # Step 2: Plot blue lines for wakeup time and add labels
-        for _, row in df_metadata.iterrows():
-            plt.axvline(x=row['wake_up_time'], color='blue', linestyle='--')
-            plt.text(row['wake_up_time'], 200, row['wake_up_type'], rotation=90, color='blue', ha='right', va='bottom')
+            # Step 2: Plot blue lines for wakeup time and add labels
+            for _, row in user_metadata.iterrows():
+                plt.axvline(x=row['wake_up_time'], color='blue', linestyle='--')
+                plt.text(row['wake_up_time'], 200, row['wake_up_type'], rotation=90, color='blue', ha='right', va='bottom')
 
-        # Step 3: Plot yellow lines for alarm_clocks 1 to 6
-        for _, row in df_metadata.iterrows():
-            for i in range(1, 6):
-                if pd.notnull(row[f'clock_{i}']):
-                    plt.axvline(x=row[f'clock_{i}'], color='yellow', linestyle='--')
+            # Step 3: Plot yellow lines for alarm_clocks 1 to 6
+            for _, row in user_metadata.iterrows():
+                for i in range(1, 6):
+                    if pd.notnull(row[f'clock_{i}']):
+                        plt.axvline(x=row[f'clock_{i}'], color='yellow', linestyle='--')
 
         plt.xlabel('Time')
         plt.ylabel('BPM')
@@ -118,7 +124,4 @@ class UiBack:
         plt.grid(True)
         plt.legend()
         plt.show()
-
-
-
 
