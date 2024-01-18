@@ -1,10 +1,10 @@
 import os
 import subprocess
-
 import boto3
 from datetime import datetime
 from collections import defaultdict
 import json
+from dotenv import load_dotenv
 
 
 class NightMetaData:
@@ -17,6 +17,8 @@ organized_data = {}
 
 
 def download_and_organize_jsons(bucket_name, prefix):
+    load_dotenv()
+
     s3 = boto3.client('s3')
     organized_data = defaultdict(NightMetaData)
     # List all objects in the specified S3 bucket and prefix
@@ -69,14 +71,9 @@ def download_json_from_s3(s3, bucket_name, key):
     return json_data
 
 
-def run_s3_scrapper():
+def run_s3_scrapper(user_id):
     s3_bucket_name = 'mn-iot-core-user-data'
-    s3_prefix = 'noam/'
-    AWS_ACCESS_KEY_ID = "AKIAVBE26ZWLVLQHSVM6"
-    AWS_SECRET_ACCESS_KEY = "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"
-    # use bash to export AWS_ACCESS_KEY_ID and AWS_SECRET_ACCESS_KEY
-    os.environ['AWS_ACCESS_KEY_ID'] = AWS_ACCESS_KEY_ID
-    os.environ['AWS_SECRET_ACCESS_KEY'] = AWS_SECRET_ACCESS_KEY
+    s3_prefix = user_id+'/'
 
     # Organize JSONs by date
     organized_data = download_and_organize_jsons(s3_bucket_name, s3_prefix)
@@ -84,9 +81,25 @@ def run_s3_scrapper():
     # Print the organized data
 
 
-if __name__ == "__main__":
-    organized_data = run_s3_scrapper()
-    for date, json_list in organized_data.items():
+def write_to_json_files(data):
+    for date, data in organized_data.items():
+        directory = f'night_data/{data.id}/'
+        json_data = {
+            "id": data.id,
+            "data": date,
+            "morning_clock_time": data.morning_clock_time,
+            "actions": data.actions
+        }
         print(f"Date: {date}")
-        for json_data in json_list:
-            print(json_data)
+        if not os.path.exists(directory):
+            os.makedirs(directory)
+        with open(f"{directory}/{date}.json", 'w') as file:
+            json.dump(json_data, file)
+        # for json_data in data.actions:
+        #     print(json_data)
+
+
+if __name__ == "__main__":
+    user_id = "noam"
+    organized_data = run_s3_scrapper(user_id)
+    write_to_json_files(organized_data)
